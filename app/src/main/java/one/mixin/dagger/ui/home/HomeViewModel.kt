@@ -1,5 +1,6 @@
 package one.mixin.dagger.ui.home
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -7,31 +8,42 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
-import one.mixin.dagger.data.AppDatabase
 import one.mixin.dagger.data.DatabaseProvider
 import one.mixin.dagger.data.entity.Message
 import one.mixin.dagger.data.entity.User
+import one.mixin.dagger.data.repository.MessageRepository
+import one.mixin.dagger.data.repository.UserRepository
 import javax.inject.Inject
 import kotlin.random.Random
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val database: AppDatabase,
-    private val databaseProvider: DatabaseProvider
+    private val databaseProvider: DatabaseProvider,
+    private val userRepository: UserRepository,
+    private val messageRepository: MessageRepository,
+    savedStateHandle: SavedStateHandle
 ) : ViewModel() {
+    
+    private val username = checkNotNull(savedStateHandle.get<String>("username")) { "Username is required" }
     
     private val _currentUser = MutableStateFlow<User?>(null)
     val currentUser: StateFlow<User?> = _currentUser
     
-    val messages = _currentUser.flatMapLatest { user ->
-        user?.let { database.messageDao().getMessagesByUserId(it.id) }
-            ?: kotlinx.coroutines.flow.flowOf(emptyList())
-    }
-    
     init {
         viewModelScope.launch {
-            _currentUser.value = database.userDao().getCurrentUser()
+            var user = userRepository.getUserByName(username)
+            if (user == null) {
+                val newUser = User(userName = username)
+                userRepository.insertUser(newUser)
+                user = userRepository.getUserByName(username)
+            }
+            _currentUser.value = user
         }
+    }
+    
+    val messages = _currentUser.flatMapLatest { user ->
+        user?.let { messageRepository.getMessagesByUserId(it.id) }
+            ?: kotlinx.coroutines.flow.flowOf(emptyList())
     }
     
     fun insertRandomMessages() {
@@ -43,7 +55,7 @@ class HomeViewModel @Inject constructor(
                         userId = user.id
                     )
                 }
-                database.messageDao().insertMessages(randomMessages)
+                messageRepository.insertMessages(randomMessages)
             }
         }
     }

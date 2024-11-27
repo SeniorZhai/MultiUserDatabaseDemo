@@ -17,13 +17,6 @@ class LoginViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 databaseProvider.initDatabase(username)
-                val existingUser = databaseProvider.getDatabase().userDao().getUserByName(username)
-                
-                if (existingUser == null) {
-                    val user = User(userName = username)
-                    databaseProvider.getDatabase().userDao().insertUser(user)
-                }
-                
                 onSuccess()
             } catch (e: Exception) {
                 e.printStackTrace()

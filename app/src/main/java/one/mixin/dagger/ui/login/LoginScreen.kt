@@ -11,7 +11,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 @Composable
 fun LoginScreen(
     viewModel: LoginViewModel = hiltViewModel(),
-    onNavigateToHome: () -> Unit
+    onNavigateToHome: (String) -> Unit
 ) {
     var username by remember { mutableStateOf("") }
     
@@ -34,7 +34,7 @@ fun LoginScreen(
         Button(
             onClick = {
                 viewModel.login(username) {
-                    onNavigateToHome()
+                    onNavigateToHome(username)
                 }
             },
             enabled = username.isNotBlank(),
