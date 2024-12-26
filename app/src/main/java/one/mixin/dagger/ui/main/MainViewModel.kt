@@ -1,33 +1,40 @@
 package one.mixin.dagger.ui.main
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 import one.mixin.dagger.db.entity.Message
 import one.mixin.dagger.db.repository.DataRepository
-import one.mixin.dagger.utils.Session
+import one.mixin.dagger.utils.UserComponentManager
+import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
-class MainViewModel @Inject constructor(private val repository: DataRepository) :
-    ViewModel() {
-    suspend fun loadMessages(): List<Message> {
-       val userId =  repository.getUserId()
-        if (userId == null) return emptyList()
+class MainViewModel @Inject constructor(
+    private val dataRepository: DataRepository,
+    private val userComponentManager: UserComponentManager,
+) : ViewModel() {
 
-        return repository.getMessagesByUserId(userId)
+    private val _messages = MutableStateFlow<List<Message>>(emptyList())
+    val messages: StateFlow<List<Message>> get() = _messages
+
+    fun isLogin() = userComponentManager.isLogin()
+
+    fun loadMessages() {
+        viewModelScope.launch(Dispatchers.IO) {
+            dataRepository.getAllMessages().collect{
+                _messages.value = it
+            }
+        }
     }
 
-    suspend fun addMessages(): String {
-        return repository.addMessages()
-    }
-
-
-    suspend fun logout() {
-        repository.clearUserId()
-        Session.logout()
-    }
-
-    fun isLoggedIn(): Boolean {
-        return repository.getUserId() != null
+    fun insertMessage(message: String) {
+        viewModelScope.launch(Dispatchers.IO){
+            dataRepository.insertMessage(Message(content = message))
+        }
     }
 }

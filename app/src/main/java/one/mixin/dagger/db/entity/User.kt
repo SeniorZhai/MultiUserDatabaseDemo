@@ -3,8 +3,8 @@ package one.mixin.dagger.db.entity
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "users")
+@Entity
 data class User(
-    @PrimaryKey
-    val id: Long
+    @PrimaryKey val id: String,
+    val name: String
 )

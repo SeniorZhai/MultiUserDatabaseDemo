@@ -4,16 +4,23 @@ import android.content.Context
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.android.components.ActivityRetainedComponent
 import dagger.hilt.android.qualifiers.ApplicationContext
-import dagger.hilt.components.SingletonComponent
-import javax.inject.Singleton
+import one.mixin.dagger.db.MixinDatabase
+import one.mixin.dagger.utils.UserComponentManager
 
 @Module
-@InstallIn(SingletonComponent::class)
+@InstallIn(ActivityRetainedComponent::class)
 object AppModule {
-     @Provides
-     @Singleton
-     fun providerContext(@ApplicationContext context: Context): Context {
-         return context
-     }
+    @Provides
+    fun provideDatabase(
+        manager: UserComponentManager,
+        @ApplicationContext context: Context
+    ): MixinDatabase? {
+        manager.generatedComponent() ?: return null
+
+        return EntryPointAccessors.fromApplication(context, UserEntryPoint::class.java)
+            .provideDatabase()
+    }
 }

@@ -9,8 +9,7 @@ import one.mixin.dagger.db.entity.Message
 class MessageAdapter(private var messages: MutableList<Message>) :
     RecyclerView.Adapter<MessageAdapter.MessageViewHolder>() {
 
-
-    fun updateData(messages: List<Message>){
+    fun updateMessages(messages: List<Message>){
        this.messages = messages.toMutableList()
        notifyDataSetChanged()
     }
@@ -32,7 +31,7 @@ class MessageAdapter(private var messages: MutableList<Message>) :
     inner class MessageViewHolder(private val binding: ItemMessageBinding) :
         RecyclerView.ViewHolder(binding.root) {
         fun bind(message: Message) {
-            binding.messageContent.text = message.content
+            binding.messageText.text = message.content
         }
     }
 }

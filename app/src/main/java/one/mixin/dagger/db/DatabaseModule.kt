@@ -8,31 +8,28 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import one.mixin.dagger.db.dao.MessageDao
+import one.mixin.dagger.utils.UserComponentManager
 import one.mixin.dagger.utils.dbDir
 import java.io.File
-import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
-
-    private const val DB_NAME = "mixin.db"
-
-     @Provides
-    @Singleton
+    @Provides
     fun provideDatabase(
-        @ApplicationContext context: Context
-     ): MixinDatabase {
+        @ApplicationContext context: Context,
+        manager: UserComponentManager
+    ): MixinDatabase {
+        val userId = manager.getUser()?.name ?: "temp"
+        return Room.databaseBuilder(
+            context,
+            MixinDatabase::class.java,
+            File(dbDir(context, userId), "mixin.db").absolutePath
+        ).build()
+    }
 
-         val dir = dbDir(context)
-         val builder =
-             Room.databaseBuilder(context, MixinDatabase::class.java, File(dir, DB_NAME).absolutePath)
-         return builder.build()
-     }
-
-
-     @Provides
-     fun provideMessageDao(database: MixinDatabase): MessageDao {
-         return database.messageDao()
-     }
- }
+    @Provides
+    fun provideMessageDao(database: MixinDatabase): MessageDao {
+        return database.messageDao()
+    }
+}

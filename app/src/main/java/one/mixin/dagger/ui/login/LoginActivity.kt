@@ -3,52 +3,44 @@ package one.mixin.dagger.ui.login
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
-import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.MainScope
 import one.mixin.dagger.databinding.ActivityLoginBinding
+import one.mixin.dagger.db.entity.User
 import one.mixin.dagger.ui.main.MainActivity
+import one.mixin.dagger.utils.UserComponentManager
+import java.util.UUID
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class LoginActivity : AppCompatActivity() {
 
+    @Inject
+    lateinit var userComponentManager: UserComponentManager
     private lateinit var binding: ActivityLoginBinding
-    private val viewModel: LoginViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        initListener()
-    }
-
-    private fun initListener() {
-        binding.loginBtn.setOnClickListener {
-            val identityNumberStr = binding.identityNumber.text.toString()
-            if(identityNumberStr.isEmpty()){
-                Toast.makeText(this, "id is empty", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-            val identityNumber = identityNumberStr.toLongOrNull()
-            if (identityNumber == null){
-                Toast.makeText(this, "id is invalid", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-            lifecycleScope.launch {
-               val result = viewModel.login(identityNumber)
-                withContext(Dispatchers.Main) {
-                    if (result) {
-                        startActivity(Intent(this@LoginActivity, MainActivity::class.java))
-                        finish()
-                    } else {
-                        Toast.makeText(this@LoginActivity, "Login failed", Toast.LENGTH_SHORT)
-                            .show()
+        binding.apply {
+            btnLogin.setOnClickListener {
+                val userName = etUserName.text.toString()
+                // 模拟登录逻辑
+                if (userName.isNotBlank() ) {
+                    val user = User(
+                        id = UUID.nameUUIDFromBytes(userName.toByteArray()).toString(),
+                        name = userName
+                    )
+                    userComponentManager.onLogin(user)
+                    Toast.makeText(this@LoginActivity, "登录成功", Toast.LENGTH_SHORT).show()
+                    Intent(this@LoginActivity, MainActivity::class.java).also {
+                        startActivity(it)
                     }
+                    finish() // 关闭登录页面
+                } else {
+                    Toast.makeText(this@LoginActivity, "用户名或密码不能为空", Toast.LENGTH_SHORT).show()
                 }
             }
         }

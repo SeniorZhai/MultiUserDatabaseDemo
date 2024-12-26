@@ -3,12 +3,14 @@ package one.mixin.dagger.db.dao
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import kotlinx.coroutines.flow.Flow
 import one.mixin.dagger.db.entity.Message
 
 @Dao
 interface MessageDao {
+    @Query("SELECT * FROM Message")
+    fun getAllMessages(): Flow<List<Message>>
+
     @Insert
-    suspend fun insert(message: Message)
-    @Query("SELECT * FROM messages WHERE user_id = :userId")
-    suspend fun getAllMessagesByUserId(userId: Long): List<Message>
+    suspend fun insertMessage(message: Message)
 }
