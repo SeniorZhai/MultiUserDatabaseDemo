@@ -1,155 +1,102 @@
-# Android Multi-User DB
+# 多用户 Android 应用，使用 Hilt、Room、Retrofit 和 SharedPreferences
 
-一个演示 Android 多用户数据库隔离的示例项目。每个用户都拥有独立的数据库实例，实现了完全的数据隔离。
+这个 Android 应用程序演示了一个多用户的设置，使用了 Hilt 进行依赖注入，Room 进行本地数据库存储，Retrofit 进行网络请求，以及 SharedPreferences 进行用户会话管理。每个用户都有一个独立的 Room 数据库，并且网络请求是在用户上下文之外执行的。
 
-## 项目说明
+## 功能
 
-这个项目演示了如何在 Android 应用中实现多用户数据库隔离。每个用户都有自己独立的数据库文件，存储在独立的目录中，确保数据完全隔离。
+*   **多用户支持:** 每个用户都有一个独立的 Room 数据库，确保数据隔离。
+*   **用户认证:** 使用数字用户 ID 登录。
+*   **数据持久化:** 使用 SharedPreferences 存储当前登录的用户 ID。
+*   **本地数据库:** 使用 Room 存储用户特定的消息。
+*   **网络请求:** 使用 Retrofit 和 OkHttp 进行网络请求。
+*   **依赖注入:** 使用 Hilt 进行依赖注入。
+*   **退出登录功能：** 用户可以退出登录并清除用户会话。
 
-主要解决的问题：
-1. 多用户数据隔离需求
-2. 动态数据库切换
-3. 内存优化（只保持当前用户的数据库连接）
-4. 安全的数据库管理
+## 架构
 
-## 核心特性
+该应用程序遵循清晰的架构模式：
 
-- **多用户数据隔离**: 
-  - 每个用户独立的数据库目录
-  - 独立的数据库文件
-  - 完全的数据隔离
+*   **数据层 (Data Layer):**
+    *   `data/db`: 包含 Room 数据库相关的类，包括实体类 (`Message`, `User`)，DAO (`MessageDao`)，以及数据库设置 (`MixinDatabase`)。
+    *   `data/network`: 包含 Retrofit 和 OkHttp 相关的类，用于网络请求 (`ApiService`)。
+    *   `data/preference`: 包含处理 SharedPreferences 的类，用于用户会话管理 (`UserPreference`)。
+    *   `data/repository`: 提供一个统一的入口，用于访问来自不同来源的数据（本地数据库、网络、SharedPreferences）。
+*   **UI 层 (UI Layer):**
+    *   `ui/login`: 包含登录活动 (`LoginActivity`) 和它的 ViewModel (`LoginViewModel`)。
+    *   `ui/main`: 包含主活动 (`MainActivity`) 和它的 ViewModel (`MainViewModel`)。
+     *   `ui/components`: 包含自定义视图组件 (`MessageAdapter`)
+*   **依赖注入层 (DI Layer):**
+    *   `di`: 包含 Hilt 的模块，用于依赖注入。
+*  **工具类 (Utils Layer):**
+    *  `utils`: 包含帮助类，例如用于管理用户会话的 `Session`，以及扩展函数。
 
-- **动态数据库切换**: 
-  - 使用 Hilt 实现依赖注入
-  - 登录时自动切换数据库实例
-  - 安全的数据库关闭机制
+## 依赖
 
-- **现代技术栈**: 
-  - Jetpack Compose UI
-  - Hilt 依赖注入
-  - Room 数据库
-  - Kotlin Coroutines & Flow
-  - MVVM 架构
+*   **Hilt:** 用于依赖注入。
+*   **Room:** 用于本地数据库管理。
+*   **Retrofit & OkHttp:** 用于网络请求。
+*   **Kotlin 协程 (Coroutines):** 用于异步操作。
+*   **Lifecycle:** 用于 ViewModel 的生命周期管理
 
-## 实现原理
+## 设置
 
-1. **数据库隔离**
-   - 在应用私有目录下为每个用户创建独立目录
-   - 数据库文件存储在用户专属目录中
-   - 路径格式：`/data/data/one.mixin.dagger/database/<username>/user.db`
+1.  **克隆仓库:**
 
-2. **数据库管理**
-   - DatabaseProvider 负责数据库生命周期管理
-   - 使用 Hilt 注入实现依赖管理
-   - 支持动态切换数据库实例
+    ```bash
+    git clone [repository_url]
+    ```
 
-3. **用户系统**
-   - 简单的用户名登录机制
-   - 用户信息持久化
-   - 支持用户消息管理
+2.  **在 Android Studio 中打开:**
 
-4. **消息系统**
-   - 每个用户独立的消息列表
-   - 支持批量消息插入
-   - 使用 Flow 实现实时更新
+    在 Android Studio 中打开克隆的项目。
 
-## 项目结构
+3.  **配置 Gradle:**
 
-### 数据库文件结构
+    确保你安装了必要的 SDK。该项目使用 Gradle 8.0 和 Kotlin 1.9。如果你遇到 Gradle 问题，请确保使用高于 7.0 的版本。
 
-## 数据库切换与重新注入实现
+4.  **构建和运行:**
 
-### 1. 核心组件
+    在模拟器或物理设备上构建并运行项目。
 
-#### DatabaseProvider
+## 如何使用
 
-```kotlin
-class DatabaseProvider @Inject constructor(context: Context) {
-    private var currentDatabase: AppDatabase? = null
-    
-    @Synchronized
-    fun initDatabase(username: String) {
-        currentDatabase?.close()
-        val baseDir = File(context.filesDir.parent, "database")
-        val userDir = File(baseDir, username)
-        userDir.mkdirs()
-        currentDatabase = Room.databaseBuilder(
-            context,
-            AppDatabase::class.java,
-            userDir.absolutePath + File.separator + "user.db"
-        ).build()
-    }
-}
-//DatabaseModule
-@Module
-@InstallIn(SingletonComponent::class)
-object DatabaseModule {
-    @Provides
-    @Singleton
-    fun provideDatabaseProvider(
-        @ApplicationContext context: Context
-    ): DatabaseProvider
+1.  **登录:**
+    *   启动应用程序，你会被引导到登录页面。
+    *   在输入框中输入一个数字用户 ID。
+    *   点击 "登录" 按钮。
+     *   首次登录，会创建新的用户数据库。
 
-    @Provides
-    fun provideAppDatabase(
-        databaseProvider: DatabaseProvider
-    ): AppDatabase
-}
+2.  **主页面:**
+    *   如果登录成功，你将导航到主页面，其中会显示当前登录用户相关的消息。
+    *   列表数据来源于用户特定的数据库，首次登录时会初始化 0 到 100 条测试消息。
+    *   `fetch` 按钮用于请求一个模拟网络 API。
 
-//登录时切换数据库
-class LoginViewModel @Inject constructor(
-    private val databaseProvider: DatabaseProvider
-) : ViewModel() {
-    fun login(username: String) {
-        viewModelScope.launch {
-            databaseProvider.initDatabase(username)
-            // 后续操作...
-        }
-    }
-}
+3.  **退出登录:**
+      *   点击退出登录按钮，清除用户会话并返回登录页面。
 
-class HomeViewModel @Inject constructor(
-    private val database: AppDatabase
-) : ViewModel() {
-    val messages = database.messageDao()
-        .getMessagesByUserId(userId)
-        .stateIn(viewModelScope, ...)
-}
-```
+## 数据库逻辑
 
-### 2. 工作流程
+*   **每个用户的数据库:** 每个用户都有一个独立的 Room 数据库，该数据库在用户首次登录时创建，或者在用户再次登录时打开。
+*   **数据库目录:** 数据库存储在应用程序内部文件目录下的 `/databases` 目录中。
+*   **文件路径生成:** 目录路径根据已登录的用户 ID 使用 `dbDir` 方法动态生成，并且用户ID存储在 sharedpreferences中
+*   **消息存储:** `Message` 实体存储消息，并引用相应的 `User`。
 
-1. 初始启动
-    - DatabaseProvider 作为单例被创建
-    - 初始状态无活跃数据库连接
+## 关键实现细节
 
-2. 用户登录
-    - 调用 initDatabase() 创建新数据库
-    - 旧数据库连接自动关闭
-    - 新数据库实例被创建
+*   **Hilt 依赖注入:** 应用程序使用 Hilt 管理依赖。关键组件，例如 Room 数据库、Retrofit 客户端和仓库，都在需要的地方进行注入。
+*   **用户会话管理:** `Session` 对象和 `UserPreference` 用于管理用户会话和持久化用户 ID。
+*   **数据检索:** `DataRepository` 类提供了一个简化的接口，用于从不同的数据源获取数据。
+*   **异步操作:** Kotlin 协程用于执行数据库和网络操作，以非阻塞的方式确保流畅的用户体验。
+*   **OkHttp Logging 拦截器:** 添加到 OkHttpClient，可以在日志中查看 http 请求和响应。
 
-3. 数据库使用
-    - 通过 Hilt 注入 AppDatabase
-    - 每次注入都获取当前活跃的数据库实例
-    - ViewModel 中直接使用注入的数据库
+## 进一步改进
 
-4.切换用户
-    - 退出时关闭当前数据库
-    - 登录新用户时创建新数据库
-    - 所有注入点自动获取新数据库
+*   **错误处理:** 添加更健壮的错误处理，以处理网络和数据库操作。
+*   **UI 增强:** 改进用户界面以获得更好的体验。
+*   **数据库迁移:** 为未来的模式更改实现数据库迁移。
+*   **更好的加载状态:** 更准确地处理视图状态。
+*   **添加单元测试:** 为 ViewModel 和仓库编写单元测试。
 
-### 3. 关键实现细节
+## 贡献
 
-1. 单例与非单例
-    - DatabaseProvider: 单例，管理数据库生命周期
-    - AppDatabase: 非单例，每次注入获取当前实例
-
-2. 线程安全
-    - 关键方法使用 @Synchronized
-    - 数据库操作在协程中执行
-    - 安全的数据库切换机制
-
-3. 内存管理
-    - 及时关闭旧数据库连接
-    - 避免数据库连接泄漏
-    - 单一活跃数据库实例
+欢迎贡献！如果你有任何建议或改进，请随时提出 issue 或提交 pull request。
